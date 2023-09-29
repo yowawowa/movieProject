@@ -1,6 +1,9 @@
 import './App.css'
 import Movie from './components/Movie'
+import NotFound from './components/NotFound'
+import SpinnerItem from './components/Spinner'
 import { useState, useEffect } from 'react'
+
 
 function App() {
   const API_KEY = 'AT6RB72-1ZAMEV4-HQEEMGP-S4DWRPB' // not safe
@@ -11,13 +14,14 @@ function App() {
 
   const [movie, setMovie] = useState([])
   const [term, setTerm] = useState('')
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(false)
 
   useEffect(() => {
     MovieFetch(API_URL_TOP)
   }, [])
 
-
-  const onHandleSearch = (e) => {
+  const onHandleTerm = (e) => {
     setTerm(e.target.value)
   }
 
@@ -29,8 +33,25 @@ function App() {
       }
     })
       .then(res => res.json())
-      .then(res => setMovie(res.docs))
+      .then(res => {
+        if (res.docs.length !== 0) {
+          setMovie(res.docs)
+          setError(false)
+        } else { setError(true) }
+        setLoading(false)
+      })
+  }
 
+  const onHandleSearch = (e) => {
+    e.preventDefault()
+    setLoading(true)
+    MovieFetch(API_URL_SEARCH + term)
+    setTerm('')
+  }
+
+  const onNotFound = () => {
+    setLoading(true)
+    MovieFetch(API_URL_TOP)
   }
 
   return (
@@ -38,13 +59,16 @@ function App() {
       <header className='header'>
         <div className='header__content'>
           <a href='/' className='header__logo'>Cinema</a>
-          <input className='header__search' type='text' placeholder='Search' value={term} onChange={onHandleSearch} />
+          <form action='submit' onSubmit={onHandleSearch}>
+            <input className='header__search' type='text' placeholder='Search' value={term} onChange={onHandleTerm} />
+          </form>
         </div>
       </header>
-
       <div className='container'>
         <div className='movies'>
-          {movie.map((elem) => <Movie key={elem.id} {...elem} />)}
+          {error ? <NotFound onNotFound={onNotFound} /> :
+            (loading ? <SpinnerItem /> : movie.map((elem) => <Movie key={elem.id} {...elem} />))
+          }
         </div>
       </div>
     </>
